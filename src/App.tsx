@@ -16,7 +16,9 @@ import {
   Lock,
   Shield,
   ShieldAlert,
-  Key
+  Key,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { collection, onSnapshot, setDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -108,6 +110,7 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<FilterCategory>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'clicks' | 'size'>('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [hideUploadedFiles, setHideUploadedFiles] = useState<boolean>(false);
   
   // Shared Focus Modal state
   const [sharingItem, setSharingItem] = useState<SharedItem | null>(null);
@@ -352,6 +355,11 @@ export default function App() {
 
   // 3. Filter & Sort Logic Setup
   const filteredItems = items.filter(item => {
+    // Hide uploaded files if toggle activated
+    if (hideUploadedFiles && item.type === 'file') {
+      return false;
+    }
+
     // Search query matching
     const query = search.toLowerCase();
     const matchesSearch = 
@@ -497,6 +505,31 @@ export default function App() {
                         </select>
                       </div>
 
+                      {/* Hide files toggle button */}
+                      <button
+                        onClick={() => setHideUploadedFiles(!hideUploadedFiles)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
+                          hideUploadedFiles
+                            ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                        title={hideUploadedFiles ? "Tampilkan File Terunggah" : "Sembunyikan File Terunggah"}
+                      >
+                        {hideUploadedFiles ? (
+                          <>
+                            <Eye className="w-3.5 h-3.5 text-amber-600" />
+                            <span className="hidden sm:inline">Tampilkan File</span>
+                            <span className="sm:hidden">Buka File</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+                            <span className="hidden sm:inline">Sembunyikan File</span>
+                            <span className="sm:hidden">Tutup File</span>
+                          </>
+                        )}
+                      </button>
+
                       {/* View mode switcher icon */}
                       <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200/50">
                         <button
@@ -551,6 +584,25 @@ export default function App() {
 
             {/* List and Cards section */}
             <div>
+              {hideUploadedFiles && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-amber-50/80 border border-amber-100 rounded-2xl p-3 text-xs text-amber-800 flex items-center justify-between gap-2 mt-6 max-w-7xl mx-auto"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-amber-500 shrink-0 animate-ping" />
+                    <span><strong>File terunggah disembunyikan.</strong> Hanya menampilkan tautan/link saat ini.</span>
+                  </div>
+                  <button
+                    onClick={() => setHideUploadedFiles(false)}
+                    className="bg-amber-100 hover:bg-amber-200 active:scale-95 text-amber-900 font-bold px-2.5 py-1 rounded-lg border border-amber-200/50 cursor-pointer transition-all shrink-0"
+                  >
+                    Tampilkan Kembali
+                  </button>
+                </motion.div>
+              )}
+
               {sortedAndFiltered.length === 0 ? (
                 /* Beautiful empty state */
                 <div className="bg-white rounded-3xl border border-slate-100 p-8 md:p-12 text-center max-w-lg mx-auto shadow-sm mt-8" id="empty-state">
