@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "SharedItem": {
+      "title": "SharedItem",
+      "description": "Metadata for a shared file or web link saved by the administrator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for this item" },
+        "type": { "type": "string", "enum": ["file", "link"], "description": "Type of shared item" },
+        "title": { "type": "string", "description": "Name or title of the file or link" },
+        "url": { "type": "string", "description": "The URL or source base64 data" },
+        "description": { "type": "string", "description": "An optional description of the content" },
+        "fileSize": { "type": "number", "description": "File size in bytes if it is a file" },
+        "fileType": { "type": "string", "description": "MIME type if it is a file" },
+        "createdAt": { "type": "string", "description": "ISO timestamp when this was created" },
+        "clicks": { "type": "number", "description": "Count of times the link or file was opened" },
+        "tags": { "type": "array", "description": "List of tags associated with the item" },
+        "isPinned": { "type": "boolean", "description": "Whether this item is pinned at the top" }
+      },
+      "required": ["id", "type", "title", "url", "createdAt", "clicks"]
+    }
+  },
+  "firestore": {
+    "/shared_items/{itemId}": {
+      "schema": "SharedItem",
+      "description": "A collection containing some shared links or uploaded base64 mock files managed by admin."
+    }
+  }
+}

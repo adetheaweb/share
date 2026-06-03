@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Static Helpers
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidSharedItem(data) {
+      return data.keys().hasAll(['id', 'type', 'title', 'url', 'createdAt', 'clicks'])
+        && data.id is string
+        && data.id.size() <= 128
+        && data.type is string
+        && (data.type == 'file' || data.type == 'link')
+        && data.title is string
+        && data.title.size() <= 256
+        && data.url is string
+        && data.createdAt is string
+        && data.clicks is int;
+    }
+
+    // Shared items rules - Public read, verified schema write
+    match /shared_items/{itemId} {
+      allow get, list: if true;
+      allow create: if isValidId(itemId) && isValidSharedItem(incoming());
+      allow update: if isValidSharedItem(incoming());
+      allow delete: if true;
+    }
+  }
+}

@@ -19,6 +19,7 @@ import {
   Key
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import { collection, onSnapshot, setDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 import { SharedItem, FilterCategory } from './types';
 import { formatBytes } from './utils';
@@ -28,6 +29,7 @@ import AddLinkCard from './components/AddLinkCard';
 import ItemCard from './components/ItemCard';
 import ShareModal from './components/ShareModal';
 import LandingReceived from './components/LandingReceived';
+import { db, handleFirestoreError, OperationType } from './firebase';
 
 const STORAGE_KEY = 'surebeforeshare_collection_v1';
 
@@ -148,39 +150,38 @@ export default function App() {
       setRecvPayload(recv);
     }
 
-    // Load initial list
-    let stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      // Try to migrate from legacy BagiFile storage key
-      const legacy = localStorage.getItem('bagifile_collection_v2');
-      if (legacy) {
-        stored = legacy;
-        localStorage.setItem(STORAGE_KEY, legacy);
+    const collectionRef = collection(db, 'shared_items');
+    const unsub = onSnapshot(collectionRef, (snapshot) => {
+      const dbItems: SharedItem[] = [];
+      snapshot.forEach((docSnap) => {
+        dbItems.push(docSnap.data() as SharedItem);
+      });
+      
+      if (dbItems.length === 0) {
+        const seeded = localStorage.getItem('surebeforeshare_db_initialized');
+        if (!seeded) {
+          localStorage.setItem('surebeforeshare_db_initialized', 'true');
+          MOCK_ITEMS.forEach(async (item) => {
+            try {
+              await setDoc(doc(db, 'shared_items', item.id), item);
+            } catch (err) {
+              console.error('Error seeding initial mocks:', err);
+            }
+          });
+        }
+        setItems([]);
+      } else {
+        setItems(dbItems);
       }
-    }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'shared_items');
+    });
 
-    if (stored) {
-      try {
-        setItems(JSON.parse(stored));
-      } catch (e) {
-        console.error('Failed reading localized store:', e);
-        setItems(MOCK_ITEMS);
-      }
-    } else {
-      // First load, load mocks
-      setItems(MOCK_ITEMS);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_ITEMS));
-    }
+    return () => unsub();
   }, []);
 
-  // Sync to local storage
-  const saveItems = (newItems: SharedItem[]) => {
-    setItems(newItems);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newItems));
-  };
-
   // 2. Action Pipelines
-  const handleAddNewFiles = (newFiles: Omit<SharedItem, 'id' | 'createdAt' | 'clicks'>[]) => {
+  const handleAddNewFiles = async (newFiles: Omit<SharedItem, 'id' | 'createdAt' | 'clicks'>[]) => {
     const formatted: SharedItem[] = newFiles.map((file, idx) => ({
       ...file,
       id: 'file_' + Date.now() + '_' + idx,
@@ -188,10 +189,17 @@ export default function App() {
       createdAt: new Date().toISOString(),
       isPinned: false
     }));
-    saveItems([formatted[0], ...items]);
+
+    try {
+      for (const item of formatted) {
+        await setDoc(doc(db, 'shared_items', item.id), item);
+      }
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'shared_items');
+    }
   };
 
-  const handleAddNewLink = (newLink: Omit<SharedItem, 'id' | 'createdAt' | 'clicks'>) => {
+  const handleAddNewLink = async (newLink: Omit<SharedItem, 'id' | 'createdAt' | 'clicks'>) => {
     const formatted: SharedItem = {
       ...newLink,
       id: 'link_' + Date.now(),
@@ -199,71 +207,97 @@ export default function App() {
       createdAt: new Date().toISOString(),
       isPinned: false
     };
-    saveItems([formatted, ...items]);
+
+    try {
+      await setDoc(doc(db, 'shared_items', formatted.id), formatted);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `shared_items/${formatted.id}`);
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
-    const updated = items.filter(item => item.id !== id);
-    saveItems(updated);
+  const handleDeleteItem = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'shared_items', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `shared_items/${id}`);
+    }
   };
 
-  const handleTogglePin = (id: string) => {
-    const updated = items.map(item => {
-      if (item.id === id) {
-        return { ...item, isPinned: !item.isPinned };
+  const handleTogglePin = async (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    try {
+      await updateDoc(doc(db, 'shared_items', id), {
+        isPinned: !item.isPinned
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `shared_items/${id}`);
+    }
+  };
+
+  const handleUpdateTitle = async (id: string, newTitle: string) => {
+    try {
+      await updateDoc(doc(db, 'shared_items', id), {
+        title: newTitle
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `shared_items/${id}`);
+    }
+  };
+
+  const handleIncrementClicks = async (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    try {
+      await updateDoc(doc(db, 'shared_items', id), {
+        clicks: item.clicks + 1
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `shared_items/${id}`);
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      for (const item of items) {
+        await deleteDoc(doc(db, 'shared_items', item.id));
       }
-      return item;
-    });
-    saveItems(updated);
-  };
-
-  const handleUpdateTitle = (id: string, newTitle: string) => {
-    const updated = items.map(item => {
-      if (item.id === id) {
-        return { ...item, title: newTitle };
-      }
-      return item;
-    });
-    saveItems(updated);
-  };
-
-  const handleIncrementClicks = (id: string) => {
-    const updated = items.map(item => {
-      if (item.id === id) {
-        return { ...item, clicks: item.clicks + 1 };
-      }
-      return item;
-    });
-    saveItems(updated);
-  };
-
-  const handleClearAll = () => {
-    saveItems([]);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, 'shared_items');
+    }
     setShowClearConfirm(false);
   };
 
-  const handleLoadOnboardMocks = () => {
-    saveItems(MOCK_ITEMS);
-    setShowOnboardSuccess(true);
-    setTimeout(() => setShowOnboardSuccess(false), 3000);
+  const handleLoadOnboardMocks = async () => {
+    try {
+      for (const item of MOCK_ITEMS) {
+        await setDoc(doc(db, 'shared_items', item.id), item);
+      }
+      setShowOnboardSuccess(true);
+      setTimeout(() => setShowOnboardSuccess(false), 3000);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'shared_items');
+    }
   };
 
-  const handleImportSharedItem = (imported: SharedItem) => {
-    // Avoid double imports
+  const handleImportSharedItem = async (imported: SharedItem) => {
     const alreadyExists = items.some(item => item.url === imported.url && item.title === imported.title);
     if (alreadyExists) return;
 
-    // Change shared ID slightly
     const safeItem = {
       ...imported,
       id: 'imported_' + Date.now(),
       createdAt: new Date().toISOString()
     };
-    saveItems([safeItem, ...items]);
+
+    try {
+      await setDoc(doc(db, 'shared_items', safeItem.id), safeItem);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `shared_items/${safeItem.id}`);
+    }
   };
 
   const handleGoHome = () => {
-    // Clear the recv query string from browser tab cleanly without reloading
     const url = new URL(window.location.href);
     url.searchParams.delete('recv');
     window.history.pushState({}, '', url.toString());
@@ -368,12 +402,12 @@ export default function App() {
 
             <div className="max-w-7xl mx-auto px-4 md:px-8 w-full space-y-6 flex-1 pb-16">
               {/* Top Interactive panel: Creators tools */}
-              <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : 'max-w-3xl mx-auto w-full'} gap-6`} id="dashboard-creators-panel">
-                <div className={isAdmin ? '' : 'col-span-1'}>
+              {isAdmin && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="dashboard-creators-panel">
                   <UploadZone onFilesUploaded={handleAddNewFiles} />
+                  <AddLinkCard onLinkAdded={handleAddNewLink} />
                 </div>
-                {isAdmin && <AddLinkCard onLinkAdded={handleAddNewLink} />}
-              </div>
+              )}
 
 
 
