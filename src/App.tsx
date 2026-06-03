@@ -355,8 +355,8 @@ export default function App() {
 
   // 3. Filter & Sort Logic Setup
   const filteredItems = items.filter(item => {
-    // Hide uploaded files if toggle activated
-    if (hideUploadedFiles && item.type === 'file') {
+    // Hide uploaded files if toggle activated (ADMIN ONLY)
+    if (isAdmin && hideUploadedFiles && item.type === 'file') {
       return false;
     }
 
@@ -505,30 +505,32 @@ export default function App() {
                         </select>
                       </div>
 
-                      {/* Hide files toggle button */}
-                      <button
-                        onClick={() => setHideUploadedFiles(!hideUploadedFiles)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
-                          hideUploadedFiles
-                            ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                        title={hideUploadedFiles ? "Tampilkan File Terunggah" : "Sembunyikan File Terunggah"}
-                      >
-                        {hideUploadedFiles ? (
-                          <>
-                            <Eye className="w-3.5 h-3.5 text-amber-600" />
-                            <span className="hidden sm:inline">Tampilkan File</span>
-                            <span className="sm:hidden">Buka File</span>
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="w-3.5 h-3.5 text-slate-500" />
-                            <span className="hidden sm:inline">Sembunyikan File</span>
-                            <span className="sm:hidden">Tutup File</span>
-                          </>
-                        )}
-                      </button>
+                      {/* Hide files toggle button (ADMIN ONLY) */}
+                      {isAdmin && (
+                        <button
+                          onClick={() => setHideUploadedFiles(!hideUploadedFiles)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
+                            hideUploadedFiles
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                          }`}
+                          title={hideUploadedFiles ? "Tampilkan File Terunggah" : "Sembunyikan File Terunggah"}
+                        >
+                          {hideUploadedFiles ? (
+                            <>
+                              <Eye className="w-3.5 h-3.5 text-amber-600" />
+                              <span className="hidden sm:inline">Tampilkan File</span>
+                              <span className="sm:hidden">Buka File</span>
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+                              <span className="hidden sm:inline">Sembunyikan File</span>
+                              <span className="sm:hidden">Tutup File</span>
+                            </>
+                          )}
+                        </button>
+                      )}
 
                       {/* View mode switcher icon */}
                       <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200/50">
@@ -584,7 +586,7 @@ export default function App() {
 
             {/* List and Cards section */}
             <div>
-              {hideUploadedFiles && (
+              {isAdmin && hideUploadedFiles && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
