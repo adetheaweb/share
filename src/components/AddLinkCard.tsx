@@ -79,22 +79,32 @@ export default function AddLinkCard({ onLinkAdded }: AddLinkCardProps) {
       }
     }
 
-    onLinkAdded({
-      type: 'link',
-      title: finalTitle,
-      url: formattedUrl,
-      description: description.trim() || `Tautan web ke ${formattedUrl}`,
-      tags: finalTags.length > 0 ? finalTags : ['web'],
-    });
+    // Attempt to save link asynchronously so we can handle errors gracefully
+    const saveLink = async () => {
+      try {
+        await onLinkAdded({
+          type: 'link',
+          title: finalTitle,
+          url: formattedUrl,
+          description: description.trim() || `Tautan web ke ${formattedUrl}`,
+          tags: finalTags.length > 0 ? finalTags : ['web'],
+        });
 
-    // Reset Form
-    setUrl('');
-    setTitle('');
-    setDescription('');
-    setTagsInput('');
-    setSelectedChips([]);
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 3000);
+        // Reset Form upon successful DB save
+        setUrl('');
+        setTitle('');
+        setDescription('');
+        setTagsInput('');
+        setSelectedChips([]);
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } catch (err: any) {
+        console.error("Failed to add link:", err);
+        setValidationError('Gagal menyimpan link ke database. Silakan periksa jaringan Anda.');
+      }
+    };
+
+    saveLink();
   };
 
   return (

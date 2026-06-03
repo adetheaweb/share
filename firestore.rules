@@ -29,11 +29,28 @@ service cloud.firestore {
         && data.clicks is int;
     }
 
+    function isValidAdminConfig(data) {
+      return data.keys().hasAll(['id', 'adminPassword', 'updatedAt'])
+        && data.id is string
+        && data.id == 'settings'
+        && data.adminPassword is string
+        && data.adminPassword.size() >= 3
+        && data.adminPassword.size() <= 64
+        && data.updatedAt is string;
+    }
+
     // Shared items rules - Public read, verified schema write
     match /shared_items/{itemId} {
       allow get, list: if true;
       allow create: if isValidId(itemId) && isValidSharedItem(incoming());
       allow update: if isValidSharedItem(incoming());
+      allow delete: if true;
+    }
+
+    // Admin config rules - Public read, validated write
+    match /admin_config/{configId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(configId) && configId == 'settings' && isValidAdminConfig(incoming());
       allow delete: if true;
     }
   }

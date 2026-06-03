@@ -18,12 +18,27 @@
         "isPinned": { "type": "boolean", "description": "Whether this item is pinned at the top" }
       },
       "required": ["id", "type", "title", "url", "createdAt", "clicks"]
+    },
+    "AdminConfig": {
+      "title": "AdminConfig",
+      "description": "Configuration for the admin portal, especially secure passwords",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier, e.g. settings" },
+        "adminPassword": { "type": "string", "description": "Custom password for admin access" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of update" }
+      },
+      "required": ["id", "adminPassword", "updatedAt"]
     }
   },
   "firestore": {
     "/shared_items/{itemId}": {
       "schema": "SharedItem",
       "description": "A collection containing some shared links or uploaded base64 mock files managed by admin."
+    },
+    "/admin_config/{configId}": {
+      "schema": "AdminConfig",
+      "description": "Storing administrator credentials/passwords for syncing across devices"
     }
   }
 }

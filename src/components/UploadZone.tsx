@@ -26,9 +26,9 @@ export default function UploadZone({ onFilesUploaded }: UploadZoneProps) {
 
   const processFile = async (file: File): Promise<Omit<SharedItem, 'id' | 'createdAt' | 'clicks'>> => {
     return new Promise((resolve, reject) => {
-      // 5MB limit statement
-      if (file.size > 5 * 1024 * 1024) {
-        reject(new Error(`File "${file.name}" melebihi ukuran maksimal 5MB.`));
+      // 700KB limit statement
+      if (file.size > 700 * 1024) {
+        reject(new Error(`File "${file.name}" melebihi batas 700 KB untuk penyimpanan cloud serverless.`));
         return;
       }
 
@@ -68,9 +68,14 @@ export default function UploadZone({ onFilesUploaded }: UploadZoneProps) {
     }
 
     if (convertedItems.length > 0) {
-      onFilesUploaded(convertedItems);
-      setSuccessCount(convertedItems.length);
-      setTimeout(() => setSuccessCount(0), 4000);
+      try {
+        await onFilesUploaded(convertedItems);
+        setSuccessCount(convertedItems.length);
+        setTimeout(() => setSuccessCount(0), 4000);
+      } catch (err: any) {
+        console.error("Firestore write failed:", err);
+        errorMsg = 'Gagal menyimpan ke database serverless. Pastikan ukuran file kecil.';
+      }
     }
 
     if (errorMsg) {
@@ -108,8 +113,8 @@ export default function UploadZone({ onFilesUploaded }: UploadZoneProps) {
           <Upload className="w-4.5 h-4.5 text-brand-600" />
           <span>Unggah File</span>
         </h2>
-        <span className="text-[11px] text-slate-400 font-medium px-2 py-1 bg-slate-100 rounded-md flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-brand-600" /> Max 5 MB
+        <span className="text-[11px] text-slate-400 font-medium px-2 py-1 bg-slate-100 rounded-md flex items-center gap-1" title="Disimpan secara lokal terenkripsi di dalam database cloud gratis Anda">
+          <ShieldCheck className="w-3.5 h-3.5 text-brand-600" /> Max 700 KB
         </span>
       </div>
 

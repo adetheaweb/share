@@ -1,4 +1,4 @@
-import { Share2, FileText, Globe, Info, Sparkles, Shield, Lock, LogOut } from 'lucide-react';
+import { Share2, FileText, Globe, Info, Sparkles, Shield, Lock, LogOut, Key } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HeaderProps {
@@ -7,9 +7,10 @@ interface HeaderProps {
   isAdmin: boolean;
   onLoginClick: () => void;
   onLogout: () => void;
+  onChangePasswordClick?: () => void;
 }
 
-export default function Header({ totalFiles, totalLinks, isAdmin, onLoginClick, onLogout }: HeaderProps) {
+export default function Header({ totalFiles, totalLinks, isAdmin, onLoginClick, onLogout, onChangePasswordClick }: HeaderProps) {
   return (
     <header className="relative w-full overflow-hidden bg-gradient-to-r from-brand-900 via-brand-800 to-emerald-950 text-white border-b border-brand-700/30 py-10 md:py-14 shadow-lg mb-8">
       {/* Decorative grid lines */}
@@ -64,19 +65,31 @@ export default function Header({ totalFiles, totalLinks, isAdmin, onLoginClick, 
 
           {/* Admin Mode Controls */}
           {isAdmin ? (
-            <div className="flex items-center justify-between gap-3 bg-teal-500/10 border border-teal-500/30 px-4 py-4 rounded-2xl backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-teal-300 font-bold text-xs uppercase tracking-wider select-none">
-                <Shield className="w-4 h-4 text-emerald-400 animate-pulse" />
-                <span>Admin Aktif</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-teal-500/10 border border-teal-500/30 p-4 rounded-2xl backdrop-blur-md">
+              <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-1.5 text-teal-300 font-bold text-xs uppercase tracking-wider select-none">
+                  <Shield className="w-4 h-4 text-emerald-400 animate-pulse" />
+                  <span>Admin Aktif</span>
+                </div>
               </div>
-              <button
-                onClick={onLogout}
-                className="bg-rose-500/20 hover:bg-rose-500/35 active:scale-95 text-rose-300 font-black text-[10px] uppercase tracking-widest px-2.5 py-1.5 rounded-lg border border-rose-500/35 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                title="Keluar dari Akses Admin"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Keluar</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onChangePasswordClick}
+                  className="bg-teal-500/10 hover:bg-teal-500/25 active:scale-95 text-teal-300 font-black text-[10px] uppercase tracking-widest px-2.5 py-1.5 rounded-lg border border-teal-500/35 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                  title="Ubah PIN / Kata Sandi Admin"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>Ubah PIN</span>
+                </button>
+                <button
+                  onClick={onLogout}
+                  className="bg-rose-500/20 hover:bg-rose-500/35 active:scale-95 text-rose-300 font-black text-[10px] uppercase tracking-widest px-2.5 py-1.5 rounded-lg border border-rose-500/35 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                  title="Keluar dari Akses Admin"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Keluar</span>
+                </button>
+              </div>
             </div>
           ) : (
             <button

@@ -122,11 +122,25 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
 
+  // Firestore Admin Password Synchronizer State
+  const [dbAdminPass, setDbAdminPass] = useState<string | null>(null);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState(false);
+
   const handleAdminLoginSubmit = (e: FormEvent) => {
     e.preventDefault();
     const cleanPw = adminPassword.trim().toLowerCase();
-    // support typical "admin", "admin123", or user phrase "salamtangguh"
-    if (cleanPw === 'salamtangguh' || cleanPw === 'admin' || cleanPw === 'admin123') {
+    
+    // Check custom password from Firestore first, then fallbacks
+    const isMatched = (dbAdminPass && cleanPw === dbAdminPass.trim().toLowerCase()) ||
+                     cleanPw === 'salamtangguh' || 
+                     cleanPw === 'admin' || 
+                     cleanPw === 'admin123';
+
+    if (isMatched) {
       setIsAdmin(true);
       localStorage.setItem('surebeforeshare_admin_active', 'true');
       setShowAdminLogin(false);
@@ -142,7 +156,38 @@ export default function App() {
     localStorage.removeItem('surebeforeshare_admin_active');
   };
 
-  // 1. Monitor query string on initial load
+  const handleChangePasswordSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 3) {
+      setChangePasswordError('Sandi baru terlalu singkat. Minimal 3 karakter.');
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setChangePasswordError('Konfirmasi sandi tidak cocok.');
+      return;
+    }
+    
+    try {
+      await setDoc(doc(db, 'admin_config', 'settings'), {
+        id: 'settings',
+        adminPassword: newPassword,
+        updatedAt: new Date().toISOString()
+      });
+      setChangePasswordSuccess(true);
+      setChangePasswordError('');
+      setNewPassword('');
+      setNewPasswordConfirm('');
+      setTimeout(() => {
+        setChangePasswordSuccess(false);
+        setShowChangePasswordModal(false);
+      }, 2000);
+    } catch (e) {
+      setChangePasswordError('Gagal mengubah sandi di database.');
+      handleFirestoreError(e, OperationType.UPDATE, 'admin_config/settings');
+    }
+  };
+
+  // 1. Monitor query string on initial load and setup Firestore locks
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const recv = params.get('recv');
@@ -150,34 +195,35 @@ export default function App() {
       setRecvPayload(recv);
     }
 
+    // A. Shared items realtime listener
     const collectionRef = collection(db, 'shared_items');
     const unsub = onSnapshot(collectionRef, (snapshot) => {
       const dbItems: SharedItem[] = [];
       snapshot.forEach((docSnap) => {
         dbItems.push(docSnap.data() as SharedItem);
       });
-      
-      if (dbItems.length === 0) {
-        const seeded = localStorage.getItem('surebeforeshare_db_initialized');
-        if (!seeded) {
-          localStorage.setItem('surebeforeshare_db_initialized', 'true');
-          MOCK_ITEMS.forEach(async (item) => {
-            try {
-              await setDoc(doc(db, 'shared_items', item.id), item);
-            } catch (err) {
-              console.error('Error seeding initial mocks:', err);
-            }
-          });
-        }
-        setItems([]);
-      } else {
-        setItems(dbItems);
-      }
+      setItems(dbItems);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'shared_items');
     });
 
-    return () => unsub();
+    // B. Real-time Admin Config/Password Sync (Resolves cross-browser empty state and updates)
+    const adminConfigDocRef = doc(db, 'admin_config', 'settings');
+    const unsubAdminConfig = onSnapshot(adminConfigDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && data.adminPassword) {
+          setDbAdminPass(data.adminPassword);
+        }
+      }
+    }, (error) => {
+      console.warn('Silent warning setting up admin config sync (will default):', error);
+    });
+
+    return () => {
+      unsub();
+      unsubAdminConfig();
+    };
   }, []);
 
   // 2. Action Pipelines
@@ -398,6 +444,7 @@ export default function App() {
               isAdmin={isAdmin}
               onLoginClick={() => setShowAdminLogin(true)}
               onLogout={handleAdminLogout}
+              onChangePasswordClick={() => setShowChangePasswordModal(true)}
             />
 
             <div className="max-w-7xl mx-auto px-4 md:px-8 w-full space-y-6 flex-1 pb-16">
@@ -730,6 +777,127 @@ export default function App() {
                 </button>
               </div>
             </form>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+
+    {/* Admin Change Password Modal */}
+    <AnimatePresence>
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              if (!changePasswordSuccess) {
+                setShowChangePasswordModal(false);
+                setNewPassword('');
+                setNewPasswordConfirm('');
+                setChangePasswordError('');
+              }
+            }}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="relative bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 md:p-8 w-full max-w-md overflow-hidden z-10 animate-fade-in"
+          >
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+              <div className="p-2.5 bg-brand-50 text-brand-600 rounded-2xl border border-brand-100">
+                <Key className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-base">Ubah PIN / Sandi Admin</h3>
+                <p className="text-slate-400 text-xs mt-0.5 font-medium">Atur kata sandi baru untuk admin</p>
+              </div>
+            </div>
+
+            {changePasswordSuccess ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-2xl p-6 text-center space-y-3"
+              >
+                <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                  <Check className="w-6 h-6 animate-bounce" />
+                </div>
+                <h4 className="font-bold text-sm">PIN/Sandi Berhasil Diubah!</h4>
+                <p className="text-xs text-slate-500">Sandi admin baru telah disinkronkan dan dapat langsung digunakan di seluruh perangkat.</p>
+              </motion.div>
+            ) : (
+              <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5" htmlFor="new-pw">
+                    <Lock className="w-3.5 h-3.5 text-slate-400" /> PIN / Sandi Baru
+                  </label>
+                  <input
+                    type="password"
+                    id="new-pw"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (changePasswordError) setChangePasswordError('');
+                    }}
+                    autoFocus
+                    placeholder="Masukkan kata sandi baru..."
+                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-4 py-3.5 text-sm outline-none transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5" htmlFor="new-pw-confirm">
+                    <Check className="w-3.5 h-3.5 text-slate-400" /> Konfirmasi PIN / Sandi
+                  </label>
+                  <input
+                    type="password"
+                    id="new-pw-confirm"
+                    value={newPasswordConfirm}
+                    onChange={(e) => {
+                      setNewPasswordConfirm(e.target.value);
+                      if (changePasswordError) setChangePasswordError('');
+                    }}
+                    placeholder="Ketik ulang kata sandi baru..."
+                    className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-4 py-3.5 text-sm outline-none transition-all duration-200"
+                  />
+                </div>
+
+                {changePasswordError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-rose-50 text-rose-700 border border-rose-100 rounded-xl p-3 text-xs flex items-center gap-2"
+                  >
+                    <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span>{changePasswordError}</span>
+                  </motion.div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowChangePasswordModal(false);
+                      setNewPassword('');
+                      setNewPasswordConfirm('');
+                      setChangePasswordError('');
+                    }}
+                    className="flex-1 bg-slate-150 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-3 rounded-xl transition-all cursor-pointer text-center"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-brand-800 border border-brand-800 hover:bg-brand-700 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer text-center"
+                  >
+                    Simpan PIN Baru
+                  </button>
+                </div>
+              </form>
+            )}
           </motion.div>
         </div>
       )}
