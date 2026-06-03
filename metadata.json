@@ -1,0 +1,6 @@
+{
+  "name": "Sure Before Share",
+  "description": "Sebuah halaman web modern dan fungsional untuk mengunggah, mengelola, dan membagikan file serta link secara instan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
