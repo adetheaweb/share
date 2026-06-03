@@ -789,26 +789,6 @@ export default function App() {
                 </motion.div>
               )}
 
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-[11px] text-slate-500 space-y-1">
-                <span className="font-semibold block text-slate-600">💡 Informasi Pengujian:</span>
-                <p>Masukkan salah satu sandi berikut untuk mempermudah penilaian:</p>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {['salamtangguh', 'admin', 'admin123'].map((code) => (
-                    <button
-                      key={code}
-                      type="button"
-                      onClick={() => {
-                        setAdminPassword(code);
-                        setAdminLoginError('');
-                      }}
-                      className="bg-white hover:bg-brand-50 hover:text-brand-700 border border-slate-200 hover:border-brand-200 px-2 py-1 rounded-md font-mono text-[10px] text-slate-600 transition-all cursor-pointer shadow-sm"
-                    >
-                      {code}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
