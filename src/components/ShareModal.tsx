@@ -68,9 +68,9 @@ export default function ShareModal({ item, onClose }: ShareModalProps) {
   const isPayloadHuge = shareUrl.length > 2000;
 
   // Social share urls
-  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Halo! Lihat file/link menarik "${item.title}" yang saya bagikan di Sure Before Share: ` + shareUrl)}`;
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Halo! Lihat file/link menarik "${item.title}" yang saya bagikan di DIGITAL_FILE: ` + shareUrl)}`;
   const teleUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Ayo lihat "${item.title}" yang dibagikan!`)}`;
-  const mailUrl = `mailto:?subject=${encodeURIComponent(`Membagikan: ${item.title}`)}&body=${encodeURIComponent(`Halo, saya membagikan file/link "${item.title}" dengan Anda melalui Sure Before Share.\n\nKlik tautan di bawah ini untuk mengaksesnya langsung:\n${shareUrl}`)}`;
+  const mailUrl = `mailto:?subject=${encodeURIComponent(`Membagikan: ${item.title}`)}&body=${encodeURIComponent(`Halo, saya membagikan file/link "${item.title}" dengan Anda melalui DIGITAL_FILE.\n\nKlik tautan di bawah ini untuk mengaksesnya langsung:\n${shareUrl}`)}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -236,7 +236,7 @@ export default function ShareModal({ item, onClose }: ShareModalProps) {
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-2">
-                    Gunakan kamera ponsel untuk memindai link QR Sure Before Share di atas
+                    Gunakan kamera ponsel untuk memindai link QR DIGITAL_FILE di atas
                   </p>
                 </motion.div>
               )}

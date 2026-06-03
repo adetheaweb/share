@@ -38,19 +38,19 @@ const STORAGE_KEY = 'surebeforeshare_collection_v1';
 // ----------------------------------------------------
 const getMockGuideFileBase64 = (): string => {
   const guideText = `====================================================
-      PANDUAN PENGGUNAAN SURE BEFORE SHARE
+      PANDUAN PENGGUNAAN DIGITAL_FILE
 ====================================================
 
-Selamat datang di aplikasi Sure Before Share!
+Selamat datang di aplikasi DIGITAL_FILE!
 
 Aplikasi ini berjalan 100% secara lokal dan mandiri di dalam web browser Anda.
-Keuntungan menggunakan Sure Before Share:
+Keuntungan menggunakan DIGITAL_FILE:
 1. Tidak ada server eksternal, menjaga keamanan file & data Anda.
 2. Link berbagi cerdas memaketkan semua detail metadata langsung ke dalam satu URL tunggal.
 3. Mendukung QR-Code yang bisa difoto/dipindai menggunakan kamera handphone Anda.
 4. Anda dapat memperbarui judul file atau link secara langsung.
 
-Terima kasih telah menggunakan Sure Before Share!
+Terima kasih telah menggunakan DIGITAL_FILE!
 Dibuat dengan cinta untuk kemudahan berbagi sehari-hari.
 `;
   // Safe base64 conversion supporting utf-8
@@ -75,9 +75,9 @@ const MOCK_ITEMS: SharedItem[] = [
   {
     id: 'mock_2',
     type: 'file',
-    title: 'panduan_penggunaan_sure_before_share.txt',
+    title: 'panduan_penggunaan_digital_file.txt',
     url: getMockGuideFileBase64(),
-    description: 'File panduan cara kerja transfer data serverless URL di aplikasi Sure Before Share.',
+    description: 'File panduan cara kerja transfer data serverless URL di aplikasi DIGITAL_FILE.',
     fileSize: 624,
     fileType: 'text/plain',
     clicks: 5,
@@ -614,7 +614,7 @@ export default function App() {
             {/* Humble aesthetic footer */}
             <footer className="mt-16 text-center border-t border-slate-200/50 pt-6">
               <p className="text-xs text-slate-400 font-medium flex items-center justify-center gap-1">
-                <span>Sure Before Share App • 100% Serverless & Private</span>
+                <span>DIGITAL_FILE App • 100% Serverless & Private</span>
                 <span>• Terenkripsi secara Mandiri</span>
               </p>
             </footer>

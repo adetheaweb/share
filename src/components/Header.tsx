@@ -27,9 +27,9 @@ export default function Header({ totalFiles, totalLinks, isAdmin, onLoginClick, 
           </div>
           
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-200 bg-clip-text text-transparent">
-            Sure Before Share<span className="text-brand-400">.</span>
+            DIGITAL_FILE<span className="text-brand-400">.</span>
           </h1>
-          <p className="text-emerald-100/70 text-sm md:text-base mt-2 max-w-xl font-light italic uppercase">
+          <p className="text-emerald-100/70 text-sm md:text-base mt-2 max-w-xl font-light uppercase">
             SALAM TANGGUH TANPA MENGELUH
           </p>
           <p className="text-brand-300/80 text-xs md:text-sm mt-1 max-w-xl font-semibold uppercase tracking-wider">
